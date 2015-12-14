@@ -12,8 +12,10 @@ namespace WiiMotionController
         public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);
 
 		Wiimote wm = new Wiimote();
+        WiimoteState state = null;
         public static float X = 0;
         public static float Y = 0;
+        public static float Z = 0;
 
         private const int MOUSEEVENTF_LEFTDOWN = 0x02;
         private const int MOUSEEVENTF_LEFTUP = 0x04;
@@ -38,7 +40,40 @@ namespace WiiMotionController
 		public MainForm()
 		{
 			InitializeComponent();
+            Thread t = new Thread(ProcessingThread);
+            t.IsBackground = true;
+            t.Start();
 		}
+
+        public void ProcessingThread()
+        {
+            while (true)
+            {
+                if (state != null)
+                {
+                    ChangeLabel(state.AccelState.Values.ToString());
+                    /*if (Math.Abs(state.AccelState.Values.Y - Y) > Math.Abs(state.AccelState.Values.X - X) &&
+                        state.AccelState.Values.Y - Y < -2f)
+                    {
+                        //DoMouseClick();
+                    }
+                    else if (state.AccelState.Values.X - X > 2f)
+                    {
+                        //DoMouseRClick();
+                    }*/
+                    if (state.AccelState.Values.X < -.9f)
+                        ChangeMotionLabel("Defending");
+                    else if (state.AccelState.Values.Z - Z > 1.5f)
+                        ChangeMotionLabel("Attacking");
+                    else
+                        ChangeMotionLabel("None");
+                    X = state.AccelState.Values.X;
+                    Y = state.AccelState.Values.Y;
+                    Z = state.AccelState.Values.Z;
+                }
+                Thread.Sleep(100);
+            }
+        }
 
 		private void Form1_Load(object sender, EventArgs e)
 		{
@@ -60,25 +95,22 @@ namespace WiiMotionController
                 accelLabel.Text = str;
             }
         }
+        private void ChangeMotionLabel(string str)
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new MethodInvoker(() => { ChangeMotionLabel(str); }));
+            }
+            else
+            {
+                motionLabel.Text = "Motion: " + str;
+            }
+        }
 
 		private void wm_WiimoteChanged(object sender, WiimoteChangedEventArgs args)
 		{
-            Thread t = new Thread(() => {
-                ChangeLabel(args.WiimoteState.AccelState.Values.ToString());
-                if (Math.Abs(args.WiimoteState.AccelState.Values.Y - Y) > Math.Abs(args.WiimoteState.AccelState.Values.X - X) &&
-                    args.WiimoteState.AccelState.Values.Y - Y< -2f)
-                {
-                    DoMouseClick();
-                }
-                else if (args.WiimoteState.AccelState.Values.X - X > 2f)
-                {
-                    DoMouseRClick();
-                }
-                X = args.WiimoteState.AccelState.Values.X;
-                Y = args.WiimoteState.AccelState.Values.Y;
-            });
-            t.IsBackground = true;
-            t.Start();
+            if (args.WiimoteState != null)
+                state = args.WiimoteState;
 		}
 
 		private void wm_WiimoteExtensionChanged(object sender, WiimoteExtensionChangedEventArgs args)

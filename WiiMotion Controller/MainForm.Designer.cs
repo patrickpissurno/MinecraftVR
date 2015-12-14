@@ -29,23 +29,35 @@ namespace WiiMotionController
 		private void InitializeComponent()
 		{
             this.accelLabel = new System.Windows.Forms.Label();
+            this.motionLabel = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
-            // poop
+            // accelLabel
             // 
             this.accelLabel.Anchor = System.Windows.Forms.AnchorStyles.Top;
             this.accelLabel.Location = new System.Drawing.Point(1, 9);
-            this.accelLabel.Name = "poop";
+            this.accelLabel.Name = "accelLabel";
             this.accelLabel.Size = new System.Drawing.Size(299, 13);
             this.accelLabel.TabIndex = 0;
             this.accelLabel.Text = "Accelerometer Data";
             this.accelLabel.TextAlign = System.Drawing.ContentAlignment.TopCenter;
+            // 
+            // motionLabel
+            // 
+            this.motionLabel.Anchor = System.Windows.Forms.AnchorStyles.Top;
+            this.motionLabel.Location = new System.Drawing.Point(1, 39);
+            this.motionLabel.Name = "motionLabel";
+            this.motionLabel.Size = new System.Drawing.Size(299, 13);
+            this.motionLabel.TabIndex = 1;
+            this.motionLabel.Text = "Motion:";
+            this.motionLabel.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(300, 61);
+            this.Controls.Add(this.motionLabel);
             this.Controls.Add(this.accelLabel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -61,6 +73,7 @@ namespace WiiMotionController
 		#endregion
 
         private System.Windows.Forms.Label accelLabel;
+        private System.Windows.Forms.Label motionLabel;
 
 
     }
