@@ -26,24 +26,25 @@ namespace WiiMotionController
             None
         }
 
-        private const int MOUSEEVENTF_LEFTDOWN = 0x02;
-        private const int MOUSEEVENTF_LEFTUP = 0x04;
-        private const int MOUSEEVENTF_RIGHTDOWN = 0x08;
-        private const int MOUSEEVENTF_RIGHTUP = 0x10;
+        private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+        private const uint MOUSEEVENTF_LEFTUP = 0x0004;
+        private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
+        private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
+        private const uint MOUSEEVENTF_ABSOLUTE = 0x8000;
 
-        public void DoMouseClick()
+        /*public void DoMouseClick()
         {
             //Call the imported function with the cursor's current position
             int X = Cursor.Position.X;
             int Y = Cursor.Position.Y;
             mouse_event(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_LEFTUP, (uint)X, (uint)Y, 0, 0);
-        }
-        public void DoMouseRClick()
+        }*/
+        public void DoMouseEvent(uint EVENT)
         {
             //Call the imported function with the cursor's current position
             int X = Cursor.Position.X;
             int Y = Cursor.Position.Y;
-            mouse_event(MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_RIGHTUP, (uint)X, (uint)Y, 0, 0);
+            mouse_event(EVENT, (uint)X, (uint)Y, 0, 0);
         }
 
 		public MainForm()
@@ -63,7 +64,7 @@ namespace WiiMotionController
             {
                 if (state != null)
                 {
-                    //ChangeLabel(state.AccelState.Values.ToString());
+                    ChangeLabel(state.AccelState.Values.ToString());
                     if (state.AccelState.Values.Z - Z > 1.5f)
                         motionState = MotionTypes.Attack;
                     else if (state.AccelState.Values.X < -.9f)
@@ -83,14 +84,15 @@ namespace WiiMotionController
             MotionTypes last = motionState;
             while (true)
             {
-                ChangeLabel(motionTimeout.ToString());
+                //ChangeLabel(motionTimeout.ToString());
                 bool slept = false;
                 switch (motionState)
                 {
                     case MotionTypes.Defend:
-                        if (motionTimeout == 0 || last == motionState)
+                        if (motionTimeout == 0 && last != motionState)
                         {
                             ChangeMotionLabel("Defending");
+                            DoMouseEvent(MOUSEEVENTF_RIGHTDOWN);
                             last = motionState;
                             TSleep(100);
                             slept = true;
@@ -100,6 +102,7 @@ namespace WiiMotionController
                         if (motionTimeout == 0 || last == motionState)
                         {
                             ChangeMotionLabel("Attacking");
+                            DoMouseEvent(MOUSEEVENTF_LEFTDOWN);
                             last = motionState;
                             motionTimeout = .5f;
                             TSleep(100);
@@ -110,6 +113,15 @@ namespace WiiMotionController
                         if (motionTimeout == 0 || last == motionState)
                         {
                             ChangeMotionLabel("None");
+                            switch (last)
+                            {
+                                case MotionTypes.Attack:
+                                    DoMouseEvent(MOUSEEVENTF_LEFTUP);
+                                    break;
+                                case MotionTypes.Defend:
+                                    DoMouseEvent(MOUSEEVENTF_RIGHTUP);
+                                    break;
+                            }
                             last = motionState;
                             TSleep(50);
                             slept = true;
