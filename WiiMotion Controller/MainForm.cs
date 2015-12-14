@@ -16,6 +16,15 @@ namespace WiiMotionController
         public static float X = 0;
         public static float Y = 0;
         public static float Z = 0;
+        public static MotionTypes motionState = MotionTypes.None;
+        public static float motionTimeout = 0;
+
+        public enum MotionTypes
+        {
+            Attack,
+            Defend,
+            None
+        }
 
         private const int MOUSEEVENTF_LEFTDOWN = 0x02;
         private const int MOUSEEVENTF_LEFTUP = 0x04;
@@ -43,6 +52,9 @@ namespace WiiMotionController
             Thread t = new Thread(ProcessingThread);
             t.IsBackground = true;
             t.Start();
+            Thread x = new Thread(EmulationThread);
+            x.IsBackground = true;
+            x.Start();
 		}
 
         public void ProcessingThread()
@@ -51,28 +63,71 @@ namespace WiiMotionController
             {
                 if (state != null)
                 {
-                    ChangeLabel(state.AccelState.Values.ToString());
-                    /*if (Math.Abs(state.AccelState.Values.Y - Y) > Math.Abs(state.AccelState.Values.X - X) &&
-                        state.AccelState.Values.Y - Y < -2f)
-                    {
-                        //DoMouseClick();
-                    }
-                    else if (state.AccelState.Values.X - X > 2f)
-                    {
-                        //DoMouseRClick();
-                    }*/
-                    if (state.AccelState.Values.X < -.9f)
-                        ChangeMotionLabel("Defending");
-                    else if (state.AccelState.Values.Z - Z > 1.5f)
-                        ChangeMotionLabel("Attacking");
+                    //ChangeLabel(state.AccelState.Values.ToString());
+                    if (state.AccelState.Values.Z - Z > 1.5f)
+                        motionState = MotionTypes.Attack;
+                    else if (state.AccelState.Values.X < -.9f)
+                        motionState = MotionTypes.Defend;
                     else
-                        ChangeMotionLabel("None");
+                        motionState = MotionTypes.None;
                     X = state.AccelState.Values.X;
                     Y = state.AccelState.Values.Y;
                     Z = state.AccelState.Values.Z;
                 }
                 Thread.Sleep(100);
             }
+        }
+
+        public void EmulationThread()
+        {
+            MotionTypes last = motionState;
+            while (true)
+            {
+                ChangeLabel(motionTimeout.ToString());
+                bool slept = false;
+                switch (motionState)
+                {
+                    case MotionTypes.Defend:
+                        if (motionTimeout == 0 || last == motionState)
+                        {
+                            ChangeMotionLabel("Defending");
+                            last = motionState;
+                            TSleep(100);
+                            slept = true;
+                        }
+                        break;
+                    case MotionTypes.Attack:
+                        if (motionTimeout == 0 || last == motionState)
+                        {
+                            ChangeMotionLabel("Attacking");
+                            last = motionState;
+                            motionTimeout = .5f;
+                            TSleep(100);
+                            slept = true;
+                        }
+                        break;
+                    default:
+                        if (motionTimeout == 0 || last == motionState)
+                        {
+                            ChangeMotionLabel("None");
+                            last = motionState;
+                            TSleep(50);
+                            slept = true;
+                        }
+                        break;
+                }
+                if (!slept)
+                {
+                    TSleep(100);
+                }
+            }
+        }
+
+        public void TSleep(int t)
+        {
+            Thread.Sleep(t);
+            float f = motionTimeout - t / 1000f;
+            motionTimeout = f > 0 ? f : 0;
         }
 
 		private void Form1_Load(object sender, EventArgs e)
