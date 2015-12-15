@@ -232,6 +232,10 @@ namespace WiiMotionController
                         DoMouseEvent(-1);
                     if (state.ButtonState.A)
                         SendKeyAsInput(32, KeyboardSimulationType.PressRelease);
+                    if (state.ButtonState.Home)
+                        SendKeyAsInput(27, KeyboardSimulationType.PressRelease);
+                    if (state.ButtonState.Plus)
+                        SendKeyAsInput(69, KeyboardSimulationType.PressRelease);
                     ChangeLabel(state.AccelState.Values.ToString());
                     if (state.AccelState.Values.Z - Z > 1.5f)
                         motionState = MotionTypes.Attack;
