@@ -30,6 +30,7 @@ namespace WiiMotionController
 		{
             this.accelLabel = new System.Windows.Forms.Label();
             this.motionLabel = new System.Windows.Forms.Label();
+            this.startButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // accelLabel
@@ -52,11 +53,22 @@ namespace WiiMotionController
             this.motionLabel.Text = "Motion:";
             this.motionLabel.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             // 
+            // startButton
+            // 
+            this.startButton.Location = new System.Drawing.Point(111, 20);
+            this.startButton.Name = "startButton";
+            this.startButton.Size = new System.Drawing.Size(75, 23);
+            this.startButton.TabIndex = 2;
+            this.startButton.Text = "Start";
+            this.startButton.UseVisualStyleBackColor = true;
+            this.startButton.Click += new System.EventHandler(this.startButton_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(300, 61);
+            this.Controls.Add(this.startButton);
             this.Controls.Add(this.motionLabel);
             this.Controls.Add(this.accelLabel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -74,6 +86,7 @@ namespace WiiMotionController
 
         private System.Windows.Forms.Label accelLabel;
         private System.Windows.Forms.Label motionLabel;
+        private System.Windows.Forms.Button startButton;
 
 
     }

@@ -175,12 +175,8 @@ namespace WiiMotionController
 		public MainForm()
 		{
 			InitializeComponent();
-            Thread t = new Thread(ProcessingThread);
-            t.IsBackground = true;
-            t.Start();
-            Thread x = new Thread(EmulationThread);
-            x.IsBackground = true;
-            x.Start();
+            motionLabel.Visible = false;
+            accelLabel.Visible = false;
 		}
 
         public void MovementEmulation(float X, float Y)
@@ -326,16 +322,31 @@ namespace WiiMotionController
 		{
 			wm.WiimoteChanged += wm_WiimoteChanged;
 			wm.WiimoteExtensionChanged += wm_WiimoteExtensionChanged;
-			wm.Connect();
-			wm.SetReportType(InputReport.ButtonsAccel, true);
-			wm.SetLEDs(true, false, false, false);
+			
 		}
+
+        public void Start()
+        {
+            wm.Connect();
+            wm.SetReportType(InputReport.ButtonsAccel, true);
+            wm.SetLEDs(true, false, false, false);
+            Thread t = new Thread(ProcessingThread);
+            t.IsBackground = true;
+            t.Start();
+            Thread x = new Thread(EmulationThread);
+            x.IsBackground = true;
+            x.Start();
+        }
 
         private void ChangeLabel(string str)
         {
             if (this.InvokeRequired)
             {
-                this.Invoke(new MethodInvoker(() => { ChangeLabel(str); }));
+                try
+                {
+                    this.Invoke(new MethodInvoker(() => { ChangeLabel(str); }));
+                }
+                catch { }
             }
             else
             {
@@ -346,7 +357,11 @@ namespace WiiMotionController
         {
             if (this.InvokeRequired)
             {
-                this.Invoke(new MethodInvoker(() => { ChangeMotionLabel(str); }));
+                try
+                {
+                    this.Invoke(new MethodInvoker(() => { ChangeMotionLabel(str); }));
+                }
+                catch { }
             }
             else
             {
@@ -373,5 +388,20 @@ namespace WiiMotionController
 			wm.Disconnect();
             Application.Exit();
 		}
+
+        private void startButton_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                Start();
+                ((Button)sender).Visible = false;
+                accelLabel.Visible = true;
+                motionLabel.Visible = true;
+            }
+            catch
+            {
+                MessageBox.Show("Please first connect and pair the Wii Remote and try again");
+            }
+        }
 	}
 }
