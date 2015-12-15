@@ -8,10 +8,131 @@ namespace WiiMotionController
 {
 	public partial class MainForm : Form
 	{
-        [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
+        [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall, SetLastError = true)]
         public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);
 
-		Wiimote wm = new Wiimote();
+        #region Keyboard Simulation
+        const int INPUT_MOUSE = 0;
+        const int INPUT_KEYBOARD = 1;
+        const int INPUT_HARDWARE = 2;
+        const uint KEYEVENTF_EXTENDEDKEY = 0x0001;
+        const uint KEYEVENTF_KEYDOWN = 0;
+        const uint KEYEVENTF_KEYUP = 0x0002;
+        const uint KEYEVENTF_UNICODE = 0x0004;
+        const uint KEYEVENTF_SCANCODE = 0x0008;
+
+        struct INPUT
+        {
+            public int type;
+            public InputUnion u;
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        struct InputUnion
+        {
+            [FieldOffset(0)]
+            public MOUSEINPUT mi;
+            [FieldOffset(0)]
+            public KEYBDINPUT ki;
+            [FieldOffset(0)]
+            public HARDWAREINPUT hi;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct MOUSEINPUT
+        {
+            public int dx;
+            public int dy;
+            public uint mouseData;
+            public uint dwFlags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct KEYBDINPUT
+        {
+            /*Virtual Key code.  Must be from 1-254.  If the dwFlags member specifies KEYEVENTF_UNICODE, wVk must be 0.*/
+            public ushort wVk;
+            /*A hardware scan code for the key. If dwFlags specifies KEYEVENTF_UNICODE, wScan specifies a Unicode character which is to be sent to the foreground application.*/
+            public ushort wScan;
+            /*Specifies various aspects of a keystroke.  See the KEYEVENTF_ constants for more information.*/
+            public uint dwFlags;
+            /*The time stamp for the event, in milliseconds. If this parameter is zero, the system will provide its own time stamp.*/
+            public uint time;
+            /*An additional value associated with the keystroke. Use the GetMessageExtraInfo function to obtain this information.*/
+            public IntPtr dwExtraInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct HARDWAREINPUT
+        {
+            public uint uMsg;
+            public ushort wParamL;
+            public ushort wParamH;
+        }
+
+        [DllImport("user32.dll")]
+        static extern IntPtr GetMessageExtraInfo();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+        public static void SendKeyAsInput(int key, KeyboardSimulationType t)
+        {
+            INPUT INPUT1 = new INPUT
+            {
+                type = INPUT_KEYBOARD,
+                u = new InputUnion
+                {
+                    ki = new KEYBDINPUT
+                    {
+                        wVk = (ushort)key,
+                        wScan = 0,
+                        dwFlags = KEYEVENTF_KEYDOWN,
+                        dwExtraInfo = GetMessageExtraInfo(),
+                    }
+                }
+            };
+
+            INPUT INPUT2 = new INPUT
+            {
+                type = INPUT_KEYBOARD,
+                u = new InputUnion
+                {
+                    ki = new KEYBDINPUT
+                    {
+                        wVk = (ushort)key,
+                        wScan = 0,
+                        dwFlags = KEYEVENTF_KEYUP,
+                        dwExtraInfo = GetMessageExtraInfo(),
+                    }
+                }
+            };
+
+            switch (t)
+            {
+                case KeyboardSimulationType.Press:
+                    SendInput(1, new INPUT[] { INPUT1 }, Marshal.SizeOf(typeof(INPUT)));
+                    break;
+                case KeyboardSimulationType.Release:
+                    SendInput(1, new INPUT[] { INPUT2 }, Marshal.SizeOf(typeof(INPUT)));
+                    break;
+                case KeyboardSimulationType.PressRelease:
+                    INPUT[] pInputs = new INPUT[] { INPUT1, INPUT2 };
+                    SendInput(2, pInputs, Marshal.SizeOf(typeof(INPUT)));
+                    break;
+            }
+        }
+        #endregion
+
+        public enum KeyboardSimulationType
+        {
+            Press,
+            Release,
+            PressRelease
+        }
+
+        Wiimote wm = new Wiimote();
         WiimoteState state = null;
         public static float X = 0;
         public static float Y = 0;
@@ -32,19 +153,12 @@ namespace WiiMotionController
         private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
         private const uint MOUSEEVENTF_ABSOLUTE = 0x8000;
 
-        /*public void DoMouseClick()
-        {
-            //Call the imported function with the cursor's current position
-            int X = Cursor.Position.X;
-            int Y = Cursor.Position.Y;
-            mouse_event(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_LEFTUP, (uint)X, (uint)Y, 0, 0);
-        }*/
         public void DoMouseEvent(uint EVENT)
         {
             //Call the imported function with the cursor's current position
             int X = Cursor.Position.X;
             int Y = Cursor.Position.Y;
-            //mouse_event(EVENT, (uint)X, (uint)Y, 0, 0);
+            mouse_event(EVENT, (uint)X, (uint)Y, 0, 0);
         }
 
 		public MainForm()
@@ -60,10 +174,31 @@ namespace WiiMotionController
 
         public void MovementEmulation(float X, float Y)
         {
-            bool left = X < -.3f;
-            bool right = X > .3f;
-            bool up = Y > .3f;
-            bool down = Y < -.3f;
+            bool left = X < -.15f;
+            bool right = X > .15f;
+            bool up = Y > .15f;
+            bool down = Y < -.15f;
+            if (up)
+                SendKeyAsInput(87, KeyboardSimulationType.Press);
+            else
+            {
+                SendKeyAsInput(87, KeyboardSimulationType.Release);
+                if (down)
+                    SendKeyAsInput(83, KeyboardSimulationType.Press);
+            }
+            if(!down)
+                SendKeyAsInput(83, KeyboardSimulationType.Release);
+
+            if (right)
+                SendKeyAsInput(68, KeyboardSimulationType.Press);
+            else
+            {
+                SendKeyAsInput(68, KeyboardSimulationType.Release);
+                if (left)
+                    SendKeyAsInput(65, KeyboardSimulationType.Press);
+            }
+            if (!left)
+                SendKeyAsInput(65, KeyboardSimulationType.Release);
         }
 
         public void ProcessingThread()
@@ -80,7 +215,7 @@ namespace WiiMotionController
                         jY = (float)Math.Round(jY * 10) / 10;
                         MovementEmulation(jX, jY);
                     }
-                    ChangeLabel(state.AccelState.ToString());
+                    ChangeLabel(state.AccelState.Values.ToString());
                     if (state.AccelState.Values.Z - Z > 1.5f)
                         motionState = MotionTypes.Attack;
                     else if (state.AccelState.Values.X < -.9f)
