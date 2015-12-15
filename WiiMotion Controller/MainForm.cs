@@ -44,7 +44,7 @@ namespace WiiMotionController
             //Call the imported function with the cursor's current position
             int X = Cursor.Position.X;
             int Y = Cursor.Position.Y;
-            mouse_event(EVENT, (uint)X, (uint)Y, 0, 0);
+            //mouse_event(EVENT, (uint)X, (uint)Y, 0, 0);
         }
 
 		public MainForm()
@@ -58,13 +58,29 @@ namespace WiiMotionController
             x.Start();
 		}
 
+        public void MovementEmulation(float X, float Y)
+        {
+            bool left = X < -.3f;
+            bool right = X > .3f;
+            bool up = Y > .3f;
+            bool down = Y < -.3f;
+        }
+
         public void ProcessingThread()
         {
             while (true)
             {
                 if (state != null)
                 {
-                    ChangeLabel(state.AccelState.Values.ToString());
+                    if (state.ExtensionType == ExtensionType.Nunchuk)
+                    {
+                        float jX = (state.NunchukState.RawJoystick.X - 127f) / 254f;
+                        float jY = (state.NunchukState.RawJoystick.Y - 127f) / 254f;
+                        jX = (float)Math.Round(jX * 10) / 10;
+                        jY = (float)Math.Round(jY * 10) / 10;
+                        MovementEmulation(jX, jY);
+                    }
+                    ChangeLabel(state.AccelState.ToString());
                     if (state.AccelState.Values.Z - Z > 1.5f)
                         motionState = MotionTypes.Attack;
                     else if (state.AccelState.Values.X < -.9f)
@@ -148,7 +164,7 @@ namespace WiiMotionController
 			wm.WiimoteExtensionChanged += wm_WiimoteExtensionChanged;
 			wm.Connect();
 			wm.SetReportType(InputReport.ButtonsAccel, true);
-			wm.SetLEDs(false, true, true, false);
+			wm.SetLEDs(true, false, false, false);
 		}
 
         private void ChangeLabel(string str)
@@ -183,14 +199,15 @@ namespace WiiMotionController
 		private void wm_WiimoteExtensionChanged(object sender, WiimoteExtensionChangedEventArgs args)
 		{
 			if(args.Inserted)
-				wm.SetReportType(InputReport.IRExtensionAccel, true);
+				wm.SetReportType(InputReport.ExtensionAccel, true);
 			else
-				wm.SetReportType(InputReport.IRAccel, true);
+				wm.SetReportType(InputReport.ButtonsAccel, true);
 		}
 
 		private void Form1_FormClosing(object sender, FormClosingEventArgs e)
 		{
 			wm.Disconnect();
+            Application.Exit();
 		}
 	}
 }
