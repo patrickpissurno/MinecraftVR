@@ -118,8 +118,14 @@ namespace WiiMotionController
                     SendInput(1, new INPUT[] { INPUT2 }, Marshal.SizeOf(typeof(INPUT)));
                     break;
                 case KeyboardSimulationType.PressRelease:
-                    INPUT[] pInputs = new INPUT[] { INPUT1, INPUT2 };
-                    SendInput(2, pInputs, Marshal.SizeOf(typeof(INPUT)));
+                    SendInput(1, new INPUT[] { INPUT1 }, Marshal.SizeOf(typeof(INPUT)));
+                    Thread s = new Thread(() =>
+                    {
+                        Thread.Sleep(100);
+                        SendInput(1, new INPUT[] { INPUT2 }, Marshal.SizeOf(typeof(INPUT)));
+                    });
+                    s.IsBackground = true;
+                    s.Start();
                     break;
             }
         }
@@ -224,6 +230,8 @@ namespace WiiMotionController
                         DoMouseEvent(1);
                     else if (state.ButtonState.Right)
                         DoMouseEvent(-1);
+                    if (state.ButtonState.A)
+                        SendKeyAsInput(32, KeyboardSimulationType.PressRelease);
                     ChangeLabel(state.AccelState.Values.ToString());
                     if (state.AccelState.Values.Z - Z > 1.5f)
                         motionState = MotionTypes.Attack;
@@ -261,10 +269,18 @@ namespace WiiMotionController
                     case MotionTypes.Attack:
                         if (motionTimeout == 0 || last == motionState)
                         {
-                            ChangeMotionLabel("Attacking");
-                            DoMouseEvent(MOUSEEVENTF_LEFTDOWN);
-                            last = motionState;
-                            motionTimeout = .5f;
+                            if (last != motionState && state.ButtonState.B)
+                            {
+                                ChangeMotionLabel("Placing block");
+                                DoMouseEvent(MOUSEEVENTF_RIGHTDOWN|MOUSEEVENTF_RIGHTUP);
+                            }
+                            else
+                            {
+                                ChangeMotionLabel("Attacking");
+                                DoMouseEvent(MOUSEEVENTF_LEFTDOWN);
+                                last = motionState;
+                                motionTimeout = .5f;
+                            }
                             TSleep(100);
                             slept = true;
                         }
