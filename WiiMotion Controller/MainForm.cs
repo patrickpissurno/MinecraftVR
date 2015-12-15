@@ -152,6 +152,7 @@ namespace WiiMotionController
         private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
         private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
         private const uint MOUSEEVENTF_ABSOLUTE = 0x8000;
+        private const uint MOUSEEVENTF_WHEEL = 0x0800;
 
         public void DoMouseEvent(uint EVENT)
         {
@@ -159,6 +160,10 @@ namespace WiiMotionController
             int X = Cursor.Position.X;
             int Y = Cursor.Position.Y;
             mouse_event(EVENT, (uint)X, (uint)Y, 0, 0);
+        }
+        public void DoMouseEvent(int wheelDelta)
+        {
+            mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)(wheelDelta*100), 0);
         }
 
 		public MainForm()
@@ -215,6 +220,10 @@ namespace WiiMotionController
                         jY = (float)Math.Round(jY * 10) / 10;
                         MovementEmulation(jX, jY);
                     }
+                    if (state.ButtonState.Left)
+                        DoMouseEvent(1);
+                    else if (state.ButtonState.Right)
+                        DoMouseEvent(-1);
                     ChangeLabel(state.AccelState.Values.ToString());
                     if (state.AccelState.Values.Z - Z > 1.5f)
                         motionState = MotionTypes.Attack;
